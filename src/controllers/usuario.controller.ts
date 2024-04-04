@@ -11,6 +11,7 @@ import {
   del,
   get,
   getModelSchemaRef,
+  HttpErrors,
   param,
   patch,
   post,
@@ -18,8 +19,8 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
-import {Usuario} from '../models';
-import {UsuarioRepository} from '../repositories';
+import {Credenciales, FactorDeAutenticacionPorCodigo, Login, Usuario} from '../models';
+import {LoginRepository, UsuarioRepository} from '../repositories';
 import {SeguridadUsuarioService} from '../services';
 
 export class UsuarioController {
@@ -27,7 +28,9 @@ export class UsuarioController {
     @repository(UsuarioRepository)
     public usuarioRepository : UsuarioRepository,
     @service(SeguridadUsuarioService)
-    public servicioSeguridad : SeguridadUsuarioService
+    public servicioSeguridad : SeguridadUsuarioService,
+    @repository(LoginRepository)
+    public respositorioLogin : LoginRepository,
   ) {}
 
   @post('/usuario')
@@ -48,8 +51,9 @@ export class UsuarioController {
     })
     usuario: Omit<Usuario, '_id'>,
   ): Promise<Usuario> {
+
     // crear la clave
-    let clave = this.servicioSeguridad.crearClave();
+    let clave = this.servicioSeguridad.crearTextoAleatorio(10);
     console.log(clave);
     // cifrar la clave
     let claveCifrada = this.servicioSeguridad.cifrarTexto(clave);
@@ -159,4 +163,78 @@ export class UsuarioController {
   async deleteById(@param.path.string('id') id: string): Promise<void> {
     await this.usuarioRepository.deleteById(id);
   }
+
+  /**
+   * Metodos Personalizados para la API
+  */
+
+  /**
+   *  Identificar un Usuario
+   * @param credenciales  Credenciales de acceso
+   * @returns  Usuario
+   */
+  @post('/identificar-usuario')
+  @response(200,{
+    description: 'Identificar un Usuario por un correo y clave',
+    content: { 'application/json': { schema: getModelSchemaRef(Usuario)}}
+  })
+  async identificarUsuario(
+    @requestBody(
+      {
+        content: {
+          'application/json': {
+            schema: getModelSchemaRef(Credenciales)
+          }
+        }
+      }
+    )
+    credenciales: Credenciales
+  ): Promise <object> {
+    let usuario = await this.servicioSeguridad.identificarUsuario(credenciales);
+    if (usuario) {
+      let codigo2fa = this.servicioSeguridad.crearTextoAleatorio(6);
+      let login:Login = new Login();
+      login.usuarioId = usuario._id!;
+      login.Codigo2FA = codigo2fa;
+      login.EstadoCodigo2FA = false;
+      login.Token = "";
+      login.EstadoToken = false;
+      this.respositorioLogin.create(login);
+        //notificar al usuario via correo o sms)
+    }
+    return new HttpErrors[401]("Las credenciales no son correctas");
+  }
+
+
+  @post('/verificar-2fa')
+  @response(200,{
+    description: 'Validar un codigo de 2fa',
+  })
+  async VerificarCodigo2fa(
+    @requestBody(
+      {
+        content: {
+          'application/json': {
+            schema: getModelSchemaRef(FactorDeAutenticacionPorCodigo)
+          }
+        }
+      }
+    )
+    credenciales: FactorDeAutenticacionPorCodigo
+  ): Promise <object> {
+    let usuario = await this.servicioSeguridad.validarCodigo2fa(credenciales);
+    if (usuario) {
+      let token = this.servicioSeguridad.crearToken(usuario);
+      if (usuario) {
+        usuario.Clave = ""
+        return {
+          user: usuario,
+          token: token
+        };
+      }
+
+    }
+    return new HttpErrors[401]("Codigo de 2fa invalido para el usuario seleccionado");
+  }
+
 }
