@@ -5,7 +5,7 @@ import {
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
   del,
@@ -17,21 +17,22 @@ import {
   post,
   put,
   requestBody,
-  response,
+  response
 } from '@loopback/rest';
 import {Credenciales, FactorDeAutenticacionPorCodigo, Login, Usuario} from '../models';
 import {LoginRepository, UsuarioRepository} from '../repositories';
 import {SeguridadUsuarioService} from '../services';
 
+
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
-    public usuarioRepository : UsuarioRepository,
+    public usuarioRepository: UsuarioRepository,
     @service(SeguridadUsuarioService)
-    public servicioSeguridad : SeguridadUsuarioService,
+    public servicioSeguridad: SeguridadUsuarioService,
     @repository(LoginRepository)
-    public respositorioLogin : LoginRepository,
-  ) {}
+    public respositorioLogin: LoginRepository
+  ) { }
 
   @post('/usuario')
   @response(200, {
@@ -49,7 +50,7 @@ export class UsuarioController {
         },
       },
     })
-    usuario: Omit<Usuario, '_id'>,
+    usuario: Omit<Usuario, '_id'>
   ): Promise<Usuario> {
 
     // crear la clave
@@ -69,7 +70,7 @@ export class UsuarioController {
     content: {'application/json': {schema: CountSchema}},
   })
   async count(
-    @param.where(Usuario) where?: Where<Usuario>,
+    @param.where(Usuario) where?: Where<Usuario>
   ): Promise<Count> {
     return this.usuarioRepository.count(where);
   }
@@ -87,7 +88,7 @@ export class UsuarioController {
     },
   })
   async find(
-    @param.filter(Usuario) filter?: Filter<Usuario>,
+    @param.filter(Usuario) filter?: Filter<Usuario>
   ): Promise<Usuario[]> {
     return this.usuarioRepository.find(filter);
   }
@@ -106,7 +107,7 @@ export class UsuarioController {
       },
     })
     usuario: Usuario,
-    @param.where(Usuario) where?: Where<Usuario>,
+    @param.where(Usuario) where?: Where<Usuario>
   ): Promise<Count> {
     return this.usuarioRepository.updateAll(usuario, where);
   }
@@ -140,7 +141,7 @@ export class UsuarioController {
         },
       },
     })
-    usuario: Usuario,
+    usuario: Usuario
   ): Promise<void> {
     await this.usuarioRepository.updateById(id, usuario);
   }
@@ -151,7 +152,7 @@ export class UsuarioController {
   })
   async replaceById(
     @param.path.string('id') id: string,
-    @requestBody() usuario: Usuario,
+    @requestBody() usuario: Usuario
   ): Promise<void> {
     await this.usuarioRepository.replaceById(id, usuario);
   }
@@ -167,16 +168,15 @@ export class UsuarioController {
   /**
    * Metodos Personalizados para la API
   */
-
   /**
    *  Identificar un Usuario
    * @param credenciales  Credenciales de acceso
    * @returns  Usuario
    */
   @post('/identificar-usuario')
-  @response(200,{
+  @response(200, {
     description: 'Identificar un Usuario por un correo y clave',
-    content: { 'application/json': { schema: getModelSchemaRef(Usuario)}}
+    content: {'application/json': {schema: getModelSchemaRef(Usuario)}}
   })
   async identificarUsuario(
     @requestBody(
@@ -189,25 +189,30 @@ export class UsuarioController {
       }
     )
     credenciales: Credenciales
-  ): Promise <object> {
+  ): Promise<object> {
     let usuario = await this.servicioSeguridad.identificarUsuario(credenciales);
     if (usuario) {
       let codigo2fa = this.servicioSeguridad.crearTextoAleatorio(6);
-      let login:Login = new Login();
+      console.log(codigo2fa);
+      let login: Login = new Login();
       login.usuarioId = usuario._id!;
       login.Codigo2FA = codigo2fa;
       login.EstadoCodigo2FA = false;
       login.Token = "";
       login.EstadoToken = false;
       this.respositorioLogin.create(login);
-        //notificar al usuario via correo o sms)
+      usuario.Clave = "";
+      //notificar al usuario via correo o sms
+      return usuario;
     }
     return new HttpErrors[401]("Las credenciales no son correctas");
+
   }
 
+  // Verificar el segundo factor de autenticación
 
   @post('/verificar-2fa')
-  @response(200,{
+  @response(200, {
     description: 'Validar un codigo de 2fa',
   })
   async VerificarCodigo2fa(
@@ -221,12 +226,25 @@ export class UsuarioController {
       }
     )
     credenciales: FactorDeAutenticacionPorCodigo
-  ): Promise <object> {
+  ): Promise<object> {
     let usuario = await this.servicioSeguridad.validarCodigo2fa(credenciales);
     if (usuario) {
       let token = this.servicioSeguridad.crearToken(usuario);
       if (usuario) {
-        usuario.Clave = ""
+        usuario.Clave = "";
+        try {
+          this.usuarioRepository.logins(usuario._id).patch(
+            {
+              EstadoCodigo2FA: true,
+              Token: token
+            },
+            {
+              EstadoCodigo2FA: false
+            });
+        } catch {
+          console.log("No se ha almacenado el cammbio del estado de token en la base de datos.")
+        }
+
         return {
           user: usuario,
           token: token
