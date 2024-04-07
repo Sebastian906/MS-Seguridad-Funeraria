@@ -49,11 +49,13 @@
     "!*/__tests__"
   ],
   "dependencies": {
+    "@loopback/authentication": "^11.0.0",
     "@loopback/boot": "^7.0.0",
     "@loopback/core": "^6.0.0",
     "@loopback/repository": "^7.0.0",
     "@loopback/rest": "^14.0.0",
     "@loopback/rest-explorer": "^7.0.0",
+    "@loopback/security": "^0.11.0",
     "@loopback/service-proxy": "^7.0.0",
     "crypto-js": "^4.2.0",
     "generate-password": "^1.7.1",
