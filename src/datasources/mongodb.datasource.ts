@@ -1,10 +1,11 @@
 import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
 import {juggler} from '@loopback/repository';
-
+import {ConfiguracionSeguridad} from '../config/seguridad.config';
+console.log(process.env.CONNECTION_STRING_MONGODB);
 const config = {
   name: 'mongodb',
   connector: 'mongodb',
-  url: 'mongodb+srv://User_Funeraria:Admin4@clusterfuneraria.jtrxbnf.mongodb.net/seguridad_funeraria?retryWrites=true&w=majority&appName=ClusterFuneraria',
+  url: ConfiguracionSeguridad.mongodbConnectionString,
   host: 'localhost',
   port: 27017,
   user: '',
