@@ -1,8 +1,8 @@
-import {injectable, /* inject, */ BindingScope} from '@loopback/core';
+import { /* inject, */ BindingScope, injectable} from '@loopback/core';
 import {repository} from '@loopback/repository';
-import {RolMenuRepository} from '../repositories';
 import {HttpErrors} from '@loopback/rest';
 import {UserProfile} from '@loopback/security';
+import {RolMenuRepository} from '../repositories';
 
 @injectable({scope: BindingScope.TRANSIENT})
 export class AuthService {
@@ -18,6 +18,7 @@ export class AuthService {
         menuId: idMenu,
       }
     });
+    console.log(permiso);
     let continuar: boolean = false;
     if(permiso) {
       switch(accion) {
