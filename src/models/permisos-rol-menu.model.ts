@@ -6,7 +6,7 @@ export class PermisosRolMenu extends Model {
     type: 'string',
     required: true,
   })
-  idRol: string;
+  token: string;
 
   @property({
     type: 'string',
