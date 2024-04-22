@@ -24,7 +24,7 @@ import {UserProfile} from '@loopback/security';
 import {ConfiguracionSeguridad} from '../config/seguridad.config';
 import {Credenciales, FactorDeAutenticacionPorCodigo, Login, PermisosRolMenu, Usuario} from '../models';
 import {LoginRepository, UsuarioRepository} from '../repositories';
-import {AuthService, SeguridadUsuarioService} from '../services';
+import {AuthService, NotificacionesService, SeguridadUsuarioService} from '../services';
 
 
 export class UsuarioController {
@@ -36,7 +36,9 @@ export class UsuarioController {
     @repository(LoginRepository)
     public respositorioLogin: LoginRepository,
     @service(AuthService)
-    private servicioAuth: AuthService
+    private servicioAuth: AuthService,
+    @service(NotificacionesService)
+    public servicioNotificaciones: NotificacionesService
   ) { }
 
   @post('/usuario')
