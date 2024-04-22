@@ -25,6 +25,7 @@ import {ConfiguracionSeguridad} from '../config/seguridad.config';
 import {Credenciales, FactorDeAutenticacionPorCodigo, Login, PermisosRolMenu, Usuario} from '../models';
 import {LoginRepository, UsuarioRepository} from '../repositories';
 import {AuthService, NotificacionesService, SeguridadUsuarioService} from '../services';
+import {ConfiguracionNotificaciones} from '../config/notificaciones.config';
 
 
 export class UsuarioController {
@@ -214,10 +215,18 @@ export class UsuarioController {
       this.respositorioLogin.create(login);
       usuario.Clave = "";
       //notificar al usuario via correo o sms
+      let datos = {
+        correoDestino: usuario.Correo,
+        codigo: codigo2fa,
+        //nombreDestino: `${usuario.PrimerNombre} + " " + ${usuario.PrimerApellido}`,
+        //contenidoCorreo: ConfiguracionNotificaciones.contenidoCorreo + `${codigo2fa}`,
+        //asuntoCorreo: ConfiguracionNotificaciones.asunto2fa,
+      };
+      let url = ConfiguracionNotificaciones.urlNotificaciones2fa;
+      this.servicioNotificaciones.EnviarCorreoElectronico(datos, url);
       return usuario;
     }
     return new HttpErrors[401]("Las credenciales no son correctas");
-
   }
 
   @post('/validar-permisos')
