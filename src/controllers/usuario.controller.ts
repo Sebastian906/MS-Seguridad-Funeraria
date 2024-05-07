@@ -216,13 +216,11 @@ export class UsuarioController {
       usuario.Clave = "";
       //notificar al usuario via correo o sms
       let datos = {
-        correoDestino: usuario.Correo,
-        codigo: codigo2fa,
-        //nombreDestino: `${usuario.PrimerNombre} + " " + ${usuario.PrimerApellido}`,
-        //contenidoCorreo: ConfiguracionNotificaciones.contenidoCorreo + `${codigo2fa}`,
-        //asuntoCorreo: ConfiguracionNotificaciones.asunto2fa,
+        destination: usuario.Correo,
+        message:"Hola 'Nombre usuario'"+ ConfiguracionNotificaciones.contenidoCorreo + `${codigo2fa}`,
+        subject: ConfiguracionNotificaciones.asunto2fa,
       };
-      let url = ConfiguracionNotificaciones.urlNotificaciones2fa;
+      let url = ConfiguracionNotificaciones.urlNotificaciones + "/email";
       this.servicioNotificaciones.EnviarCorreoElectronico(datos, url);
       return usuario;
     }
