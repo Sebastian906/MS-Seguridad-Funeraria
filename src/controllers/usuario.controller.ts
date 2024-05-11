@@ -109,18 +109,16 @@ export class UsuarioController {
     usuario.estadoValidacion = false;
     usuario.aceptado = false;
 
-
-
     // Notificacion del hash
     let enlace = `<a href="${ConfiguracionNotificaciones.urlValidacionCorreoFrontend}/${hash}" target='_blank'>Validar</a>`;
     let datos = {
       destination: usuario.Correo,
-      message:"Hola 'Nombre usuario'Por favor visite este link para validar su correo"+ ConfiguracionNotificaciones.contenidoCorreo + `${enlace}`,
+      message:"Hola" + usuario.PrimerNombre + "Por favor visite este link para validar su correo"+ ConfiguracionNotificaciones.contenidoCorreo + `${enlace}`,
       subject: ConfiguracionNotificaciones.asuntoVerificacionCorreo,
     };
     let url = ConfiguracionNotificaciones.urlNotificaciones + "/email";
     this.servicioNotificaciones.EnviarCorreoElectronico(datos, url);
-    
+
     // enviar correo electrónico de notificación
     return this.usuarioRepository.create(usuario);
   }
@@ -270,7 +268,7 @@ export class UsuarioController {
       //notificar al usuario via correo o sms
       let datos = {
         destination: usuario.Correo,
-        message:"Hola 'Nombre usuario'"+ ConfiguracionNotificaciones.contenidoCorreo + `${codigo2fa}`,
+        message:"Hola" + usuario.PrimerNombre + ConfiguracionNotificaciones.contenidoCorreo + `${codigo2fa}`,
         subject: ConfiguracionNotificaciones.asunto2fa,
       };
       let url = ConfiguracionNotificaciones.urlNotificaciones + "/email";

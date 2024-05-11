@@ -3,5 +3,5 @@ export namespace ConfiguracionNotificaciones {
   export const asuntoVerificacionCorreo: string = 'Validación de correo';
   export const contenidoCorreo: string = `Su código de autenticación es: `;
   export const urlNotificaciones: string = 'http://localhost:5000';
-  export const urlValidacionCorreoFrontend = 'http://localhost:4200/validar-hash-usuario-publico';
+  export const urlValidacionCorreoFrontend: string = 'http://localhost:4200/validar-hash-usuario-publico';
 }
