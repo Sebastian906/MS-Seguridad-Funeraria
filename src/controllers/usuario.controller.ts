@@ -22,7 +22,7 @@ import {
 } from '@loopback/rest';
 import {UserProfile} from '@loopback/security';
 import {ConfiguracionSeguridad} from '../config/seguridad.config';
-import {Credenciales, FactorDeAutenticacionPorCodigo, Login, PermisosRolMenu, Usuario} from '../models';
+import {Credenciales, FactorDeAutenticacionPorCodigo, HashValidacionUsuario, Login, PermisosRolMenu, Usuario} from '../models';
 import {LoginRepository, UsuarioRepository} from '../repositories';
 import {AuthService, NotificacionesService, SeguridadUsuarioService} from '../services';
 import {ConfiguracionNotificaciones} from '../config/notificaciones.config';
@@ -113,14 +113,50 @@ export class UsuarioController {
     let enlace = `<a href="${ConfiguracionNotificaciones.urlValidacionCorreoFrontend}/${hash}" target='_blank'>Validar</a>`;
     let datos = {
       destination: usuario.Correo,
-      message:"Hola" + usuario.PrimerNombre + "Por favor visite este link para validar su correo"+ ConfiguracionNotificaciones.contenidoCorreo + `${enlace}`,
+      message:"Hola " + usuario.PrimerNombre + " Por favor visite este link para validar su correo "+ ConfiguracionNotificaciones.contenidoCorreo + `${enlace}`,
       subject: ConfiguracionNotificaciones.asuntoVerificacionCorreo,
     };
     let url = ConfiguracionNotificaciones.urlNotificaciones + "/email";
     this.servicioNotificaciones.EnviarCorreoElectronico(datos, url);
 
+    // Envio de Clave
+    let datosClave = {
+      destination: usuario.Correo,
+      message:"Hola " + usuario.PrimerNombre + " Su clave de acceso es: "+ `${clave}`,
+      subject: ConfiguracionNotificaciones.claveAsignada,
+    };
+    this.servicioNotificaciones.EnviarCorreoElectronico(datosClave, url);
+
     // enviar correo electrónico de notificación
     return this.usuarioRepository.create(usuario);
+  }
+
+  @post('/validar-hash-usuario')
+  @response(200, {
+    description: 'Se valida el hash de un usuario',
+  })
+  async ValidarHashUsuario(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(HashValidacionUsuario, {}),
+        },
+      },
+    })
+    hash: HashValidacionUsuario,
+  ): Promise<boolean> {
+    let usuario = await this.usuarioRepository.findOne({
+      where: {
+        hasValidacion: hash.codigoHash,
+        estadoValidacion: false
+      }
+    });
+    if (usuario) {
+      usuario.estadoValidacion = true;
+      this.usuarioRepository.replaceById(usuario._id!, usuario);
+      return true;
+    }
+    return false;
   }
 
   @get('/usuario/count')
