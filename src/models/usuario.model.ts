@@ -50,6 +50,21 @@ export class Usuario extends Entity {
   })
   Clave?: string;
 
+  @property({
+    type: 'string',
+  })
+  hasValidacion?: string;
+
+  @property({
+    type: 'boolean',
+  })
+  estadoValidacion?: boolean;
+
+  @property({
+    type: 'boolean',
+  })
+  aceptado?: boolean;
+
   @hasMany(() => Login)
   logins: Login[];
 

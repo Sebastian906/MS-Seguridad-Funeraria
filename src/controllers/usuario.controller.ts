@@ -42,6 +42,11 @@ export class UsuarioController {
     public servicioNotificaciones: NotificacionesService
   ) { }
 
+  @authenticate({
+    strategy: "auth",
+    options: ["Usuario", "guardar"]
+  })
+
   @post('/usuario')
   @response(200, {
     description: 'Usuario model instance',
@@ -68,6 +73,54 @@ export class UsuarioController {
     let claveCifrada = this.servicioSeguridad.cifrarTexto(clave);
     // asignar la clave cifrada al usuario
     usuario.Clave = claveCifrada;
+    // enviar correo electrónico de notificación
+    return this.usuarioRepository.create(usuario);
+  }
+
+  @post('/usuario-publico')
+  @response(200, {
+    description: 'Usuario model instance',
+    content: {'application/json': {schema: getModelSchemaRef(Usuario)}},
+  })
+  async creacionPublica(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(Usuario, {
+            title: 'NewUsuario',
+            exclude: ['_id'],
+          }),
+        },
+      },
+    })
+    usuario: Omit<Usuario, '_id'>
+  ): Promise<Usuario> {
+
+    // crear la clave
+    let clave = this.servicioSeguridad.crearTextoAleatorio(10);
+    console.log(clave);
+    // cifrar la clave
+    let claveCifrada = this.servicioSeguridad.cifrarTexto(clave);
+    // asignar la clave cifrada al usuario
+    usuario.Clave = claveCifrada;
+    // has de validacion de correo
+    let hash = this.servicioSeguridad.crearTextoAleatorio(100);
+    usuario.hasValidacion = hash;
+    usuario.estadoValidacion = false;
+    usuario.aceptado = false;
+
+
+
+    // Notificacion del hash
+    let enlace = `<a href="${ConfiguracionNotificaciones.urlValidacionCorreoFrontend}/${hash}" target='_blank'>Validar</a>`;
+    let datos = {
+      destination: usuario.Correo,
+      message:"Hola 'Nombre usuario'Por favor visite este link para validar su correo"+ ConfiguracionNotificaciones.contenidoCorreo + `${enlace}`,
+      subject: ConfiguracionNotificaciones.asuntoVerificacionCorreo,
+    };
+    let url = ConfiguracionNotificaciones.urlNotificaciones + "/email";
+    this.servicioNotificaciones.EnviarCorreoElectronico(datos, url);
+    
     // enviar correo electrónico de notificación
     return this.usuarioRepository.create(usuario);
   }
