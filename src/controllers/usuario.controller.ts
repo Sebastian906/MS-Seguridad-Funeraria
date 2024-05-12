@@ -21,11 +21,11 @@ import {
   response
 } from '@loopback/rest';
 import {UserProfile} from '@loopback/security';
+import {ConfiguracionNotificaciones} from '../config/notificaciones.config';
 import {ConfiguracionSeguridad} from '../config/seguridad.config';
 import {Credenciales, FactorDeAutenticacionPorCodigo, HashValidacionUsuario, Login, PermisosRolMenu, Usuario} from '../models';
 import {LoginRepository, UsuarioRepository} from '../repositories';
 import {AuthService, NotificacionesService, SeguridadUsuarioService} from '../services';
-import {ConfiguracionNotificaciones} from '../config/notificaciones.config';
 
 
 export class UsuarioController {
@@ -73,6 +73,7 @@ export class UsuarioController {
     let claveCifrada = this.servicioSeguridad.cifrarTexto(clave);
     // asignar la clave cifrada al usuario
     usuario.Clave = claveCifrada;
+    usuario.estadoValidacion = true;
     // enviar correo electrónico de notificación
     return this.usuarioRepository.create(usuario);
   }
