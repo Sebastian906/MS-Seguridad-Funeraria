@@ -109,12 +109,13 @@ export class UsuarioController {
     usuario.hasValidacion = hash;
     usuario.estadoValidacion = false;
     usuario.aceptado = false;
+    usuario.rolId = ConfiguracionSeguridad.rolUsuarioPublico;
 
     // Notificacion del hash
     let enlace = `<a href="${ConfiguracionNotificaciones.urlValidacionCorreoFrontend}/${hash}" target='_blank'>Validar</a>`;
     let datos = {
       destination: usuario.Correo,
-      message:"Hola " + usuario.PrimerNombre + " Por favor visite este link para validar su correo "+ ConfiguracionNotificaciones.contenidoCorreo + `${enlace}`,
+      message: "Hola " + usuario.PrimerNombre + " Por favor visite este link para validar su correo " + ConfiguracionNotificaciones.contenidoCorreo + `${enlace}`,
       subject: ConfiguracionNotificaciones.asuntoVerificacionCorreo,
     };
     let url = ConfiguracionNotificaciones.urlNotificaciones + "/email";
@@ -123,7 +124,7 @@ export class UsuarioController {
     // Envio de Clave
     let datosClave = {
       destination: usuario.Correo,
-      message:"Hola " + usuario.PrimerNombre + " Su clave de acceso es: "+ `${clave}`,
+      message: "Hola " + usuario.PrimerNombre + " Su clave de acceso es: " + `${clave}`,
       subject: ConfiguracionNotificaciones.claveAsignada,
     };
     this.servicioNotificaciones.EnviarCorreoElectronico(datosClave, url);
@@ -173,7 +174,7 @@ export class UsuarioController {
 
   @authenticate({
     strategy: "auth",
-    options:[ConfiguracionSeguridad.menuUsuarioId, ConfiguracionSeguridad.listarAccion]
+    options: [ConfiguracionSeguridad.menuUsuarioId, ConfiguracionSeguridad.listarAccion]
   })
   @get('/usuario')
   @response(200, {
@@ -305,7 +306,7 @@ export class UsuarioController {
       //notificar al usuario via correo o sms
       let datos = {
         destination: usuario.Correo,
-        message:"Hola" + usuario.PrimerNombre + ConfiguracionNotificaciones.contenidoCorreo + `${codigo2fa}`,
+        message: "Hola" + usuario.PrimerNombre + ConfiguracionNotificaciones.contenidoCorreo + `${codigo2fa}`,
         subject: ConfiguracionNotificaciones.asunto2fa,
       };
       let url = ConfiguracionNotificaciones.urlNotificaciones + "/email";
@@ -357,6 +358,7 @@ export class UsuarioController {
     let usuario = await this.servicioSeguridad.validarCodigo2fa(credenciales);
     if (usuario) {
       let token = this.servicioSeguridad.crearToken(usuario);
+      let menu = [];
       if (usuario) {
         usuario.Clave = "";
         try {
@@ -371,10 +373,12 @@ export class UsuarioController {
         } catch {
           console.log("No se ha almacenado el cammbio del estado de token en la base de datos.")
         }
+        menu = await this.servicioSeguridad.ConsultarPermisosDeMenuPorUsuario(usuario.rolId);
 
         return {
           user: usuario,
-          token: token
+          token: token,
+          menu: menu
         };
       }
 

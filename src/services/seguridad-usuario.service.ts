@@ -1,8 +1,8 @@
 import { /* inject, */ BindingScope, injectable} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {ConfiguracionSeguridad} from '../config/seguridad.config';
-import {Credenciales, FactorDeAutenticacionPorCodigo, Usuario} from '../models';
-import {LoginRepository, UsuarioRepository} from '../repositories';
+import {Credenciales, FactorDeAutenticacionPorCodigo, RolMenu, Usuario} from '../models';
+import {LoginRepository, RolMenuRepository, UsuarioRepository} from '../repositories';
 const generator = require('generate-password');
 const MD5 = require("crypto-js/md5");
 const jwt = require('jsonwebtoken');
@@ -10,17 +10,19 @@ const jwt = require('jsonwebtoken');
 @injectable({scope: BindingScope.TRANSIENT})
 export class SeguridadUsuarioService {
   constructor(
-      @repository(UsuarioRepository) // Inyectar el repositorio de usuario
-      public repositoryUsuario : UsuarioRepository, // Guardar el repositorio en una variable
-      @repository(LoginRepository) // Inyectar el repositorio de login
-      public repositoryLogin : LoginRepository, // Guardar el repositorio en una variable
-    ) {}
+    @repository(UsuarioRepository) // Inyectar el repositorio de usuario
+    public repositoryUsuario: UsuarioRepository, // Guardar el repositorio en una variable
+    @repository(LoginRepository) // Inyectar el repositorio de login
+    public repositoryLogin: LoginRepository, // Guardar el repositorio en una variable
+    @repository(RolMenuRepository)
+    private repositorioRolMenu: RolMenuRepository
+  ) { }
 
   /**
    * Crear una clave aleatoria
    * @returns Cadena Aleatoria de n caracteres
    */
-  crearTextoAleatorio(n: number): string{
+  crearTextoAleatorio(n: number): string {
     let clave = generator.generate({
       length: n,
       numbers: true
@@ -33,7 +35,7 @@ export class SeguridadUsuarioService {
    * @param cadena Cadena de texto a cifrar
    * @returns Cadena cifrada con md5
    */
-  cifrarTexto(cadena:string): string {
+  cifrarTexto(cadena: string): string {
     let cadenaCifrada = MD5(cadena).toString();
     return cadenaCifrada;
   }
@@ -43,12 +45,13 @@ export class SeguridadUsuarioService {
    * @param credenciales  credenciales del usuario
    * @returns usuario o null
    */
-  async identificarUsuario(credenciales: Credenciales): Promise <Usuario | null> {
+  async identificarUsuario(credenciales: Credenciales): Promise<Usuario | null> {
     let usuario = await this.repositoryUsuario.findOne({
-      where:{
+      where: {
         Correo: credenciales.correo,
         Clave: credenciales.clave,
-        estadoValidacion: true
+        estadoValidacion: true,
+
       }
     });
     return usuario as Usuario;
@@ -59,15 +62,15 @@ export class SeguridadUsuarioService {
    * @param   credenciales2fa credenciales del usuario con el codig del 2fa
    * @returns registro de login o null
    */
-  async validarCodigo2fa(credenciales2fa: FactorDeAutenticacionPorCodigo): Promise <Usuario | null> {
+  async validarCodigo2fa(credenciales2fa: FactorDeAutenticacionPorCodigo): Promise<Usuario | null> {
     let login = await this.repositoryLogin.findOne({
-      where:{
+      where: {
         usuarioId: credenciales2fa.usuarioId,
         Codigo2FA: credenciales2fa.Codigo2fa,
         EstadoCodigo2FA: false
       }
     });
-    if (login){
+    if (login) {
       let usuario = await this.repositoryUsuario.findById(credenciales2fa.usuarioId);
       return usuario;
     }
@@ -95,9 +98,24 @@ export class SeguridadUsuarioService {
    * @param tk el token
    * @returns el _id del tol
    */
-  obtenerRolDesdeToken(tk:string):string {
+  obtenerRolDesdeToken(tk: string): string {
     let obj = jwt.verify(tk, ConfiguracionSeguridad.claveJWT);
     return obj.role;
+  }
+  /**
+   * retorna los permisos del rol de un usuario
+   * @param idRol id del roll a buscar y que esta asociado al usuario
+   */
+  async ConsultarPermisosDeMenuPorUsuario(idRol: string): Promise<RolMenu[]> {
+    let menu: RolMenu[] = await this.repositorioRolMenu.find(
+      {
+        where: {
+          Listar: true,
+          rolId: idRol
+        }
+      }
+    );
+    return menu;
   }
 
 }
