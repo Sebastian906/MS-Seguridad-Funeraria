@@ -37,6 +37,8 @@ export class SeguridadUsuarioService {
    */
   cifrarTexto(cadena: string): string {
     let cadenaCifrada = MD5(cadena).toString();
+    console.log('La cadena', cadena);
+    console.log('La clave cifrada', cadenaCifrada);
     return cadenaCifrada;
   }
 
