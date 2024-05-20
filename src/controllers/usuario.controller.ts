@@ -122,12 +122,12 @@ export class UsuarioController {
     this.servicioNotificaciones.EnviarCorreoElectronico(datos, url);
 
     // Envio de Clave
-    let datosClave = {
+    let datosCorreo = {
       destination: usuario.Correo,
       message: "Hola " + usuario.PrimerNombre + " Su clave de acceso es: " + `${clave}`,
       subject: ConfiguracionNotificaciones.claveAsignada,
     };
-    this.servicioNotificaciones.EnviarCorreoElectronico(datosClave, url);
+    this.servicioNotificaciones.EnviarCorreoElectronico(datosCorreo, url);
 
     // enviar correo electrónico de notificación
     return this.usuarioRepository.create(usuario);
@@ -155,7 +155,7 @@ export class UsuarioController {
     });
     if (usuario) {
       usuario.estadoValidacion = true;
-      this.usuarioRepository.replaceById(usuario._id!, usuario);
+      this.usuarioRepository.replaceById(usuario._id, usuario);
       return true;
     }
     return false;
