@@ -1,5 +1,6 @@
 export namespace ConfiguracionNotificaciones {
   export const asunto2fa: string = 'Código de Verificación ';
+  export const nuevaClave: string = 'Su nueva Clave es: ';
   export const asuntoVerificacionCorreo: string = 'Validación de Correo Electrónico ';
   export const claveAsignada:string = 'Asignación de Clave';
   export const contenidoCorreo: string = `Su código de autenticación es: `;

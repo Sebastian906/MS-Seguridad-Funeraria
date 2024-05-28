@@ -24,6 +24,7 @@ import {UserProfile} from '@loopback/security';
 import {ConfiguracionNotificaciones} from '../config/notificaciones.config';
 import {ConfiguracionSeguridad} from '../config/seguridad.config';
 import {Credenciales, FactorDeAutenticacionPorCodigo, HashValidacionUsuario, Login, PermisosRolMenu, Usuario} from '../models';
+import {CredencialesRecuperarClave} from '../models/credenciales-recuperar-clave.model';
 import {LoginRepository, UsuarioRepository} from '../repositories';
 import {AuthService, NotificacionesService, SeguridadUsuarioService} from '../services';
 
@@ -264,6 +265,47 @@ export class UsuarioController {
   })
   async deleteById(@param.path.string('id') id: string): Promise<void> {
     await this.usuarioRepository.deleteById(id);
+  }
+
+  @post('/recuperar-clave')
+  @response(200, {
+    description: 'Envía la contraseña al usuario con el correo correspondiente',
+    content: {'application/json': {schema: getModelSchemaRef(Usuario)}},
+  })
+  async RecuperarClaveUsuario(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(CredencialesRecuperarClave),
+        },
+      },
+    })
+    credenciales: CredencialesRecuperarClave,
+  ): Promise<object> {
+    let usuario = await this.usuarioRepository.findOne({
+      where: {
+        Correo: credenciales.correo,
+      },
+    });
+    if (usuario) {
+      let nuevaClave = this.servicioSeguridad.crearTextoAleatorio(5);
+      console.log(nuevaClave);
+      let claveCifrada = this.servicioSeguridad.cifrarTexto(nuevaClave);
+      usuario.Clave = claveCifrada;
+      this.usuarioRepository.updateById(usuario._id, usuario);
+
+      // notificar al usuario via correo o sms
+
+      let datos = {
+        destination: usuario.Correo,
+        message: "Hola" + usuario.PrimerNombre + ConfiguracionNotificaciones.contenidoCorreo + `${nuevaClave}`,
+        subject: ConfiguracionNotificaciones.nuevaClave,
+      };
+      let url = ConfiguracionNotificaciones.urlNotificaciones + "/email";
+      this.servicioNotificaciones.EnviarCorreoElectronico(datos, url);
+      return usuario;
+    }
+    return new HttpErrors[401]('Credenciales incorrectas.');
   }
 
   /**
