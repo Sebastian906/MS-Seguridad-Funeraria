@@ -1,5 +1,5 @@
 import {authenticate} from '@loopback/authentication';
-import {service} from '@loopback/core';
+import {inject, service} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -17,8 +17,10 @@ import {
   patch,
   post,
   put,
+  Request,
   requestBody,
-  response
+  response,
+  RestBindings
 } from '@loopback/rest';
 import {UserProfile} from '@loopback/security';
 import {ConfiguracionNotificaciones} from '../config/notificaciones.config';
@@ -125,13 +127,63 @@ export class UsuarioController {
     // Envio de Clave
     let datosCorreo = {
       destination: usuario.Correo,
-      message: "Hola " + usuario.PrimerNombre + " Su clave de acceso es: " + `${clave}`,
+      message: "Hola  " + usuario.PrimerNombre + " Su clave de acceso es: " + `${clave}`,
       subject: ConfiguracionNotificaciones.claveAsignada,
     };
     this.servicioNotificaciones.EnviarCorreoElectronico(datosCorreo, url);
 
     // enviar correo electrónico de notificación
     return this.usuarioRepository.create(usuario);
+  }
+
+  @post('/cambiar-clave')
+  @response(200, {
+    description: 'Se cambia la clave de un usuario',
+  })
+  async cambiarClave(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['usuario', 'claveActual', 'nuevaClave'],
+            properties: {
+              usuario: {type: 'string'},
+              claveActual: {type: 'string'},
+              nuevaClave: {type: 'string'},
+            },
+          },
+        },
+      },
+    })
+    datos: { usuario: string, claveActual: string, nuevaClave: string },
+    @inject(RestBindings.Http.REQUEST) request: Request
+  ): Promise<void> {
+    console.log('Datos recibidos del frontend:', datos);
+    console.log("Datos usuarioRepository", this.usuarioRepository)
+    let usuario = await this.usuarioRepository.findOne({
+      where: {
+        Correo: datos.usuario
+      }
+    });
+
+    if (!usuario) {
+      throw new HttpErrors.Unauthorized('No se encontró el usuario');
+    }
+
+    const claveCifradaActual = this.servicioSeguridad.cifrarTexto(datos.claveActual);
+    console.log('Contraseña cifrada actual:', claveCifradaActual);
+    console.log('Contraseña almacenada en la base de datos:', usuario.Clave);
+    if (usuario.Clave !== claveCifradaActual) {
+      throw new HttpErrors.Unauthorized('Las credenciales no son correctas');
+    }
+
+    const claveCifradaNueva = this.servicioSeguridad.cifrarTexto(datos.nuevaClave);
+    console.log('Contraseña cifrada nueva:', claveCifradaNueva);
+    usuario.Clave = claveCifradaNueva;
+
+    await this.usuarioRepository.replaceById(usuario._id, usuario);
+    console.log('Contraseña actualizada correctamente en la base de datos');
   }
 
   @post('/validar-hash-usuario')
