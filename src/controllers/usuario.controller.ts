@@ -157,7 +157,7 @@ export class UsuarioController {
       },
     })
     datos: { usuario: string, claveActual: string, nuevaClave: string },
-    @inject(RestBindings.Http.REQUEST) request: Request
+    //@inject(RestBindings.Http.REQUEST) request: Request
   ): Promise<void> {
     console.log('Datos recibidos del frontend:', datos);
     console.log("Datos usuarioRepository", this.usuarioRepository)
@@ -184,6 +184,14 @@ export class UsuarioController {
 
     await this.usuarioRepository.replaceById(usuario._id, usuario);
     console.log('Contraseña actualizada correctamente en la base de datos');
+
+    let datosClaveNueva= { //
+      destination: usuario.Correo,
+      message: "Hola " + usuario.PrimerNombre + " Su clave de acceso ha sido cambiada exitosamente " + ConfiguracionNotificaciones.cambioCalve + `${datos.nuevaClave}`,
+      subject: ConfiguracionNotificaciones.asuntoCambiodeClave,
+    };
+    console.log('Datos de correo:', datosClaveNueva);
+    return this.servicioNotificaciones.EnviarCorreoElectronico(datosClaveNueva, ConfiguracionNotificaciones.urlNotificaciones + "/email");
   }
 
   @post('/validar-hash-usuario')
